@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Radio Online — страны и волны</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="hero">
+        <p class="badge">LIVE RADIO</p>
+        <h1>Radio Online</h1>
+        <p class="subtitle">Современное онлайн-радио: выбери страну, найди волну и слушай сразу.</p>
+      </header>
+
+      <section class="panel controls">
+        <div class="field">
+          <label for="countrySelect">Страна</label>
+          <select id="countrySelect"></select>
+        </div>
+        <div class="field">
+          <label for="searchInput">Поиск станции</label>
+          <input id="searchInput" type="text" placeholder="Rock, Pop, Новости, Jazz..." />
+        </div>
+      </section>
+
+      <section class="panel player">
+        <h2 id="currentName">Станция не выбрана</h2>
+        <p id="currentInfo">Сначала выбери страну и волну из списка ниже.</p>
+        <audio id="audio" controls preload="none"></audio>
+      </section>
+
+      <section class="panel stations">
+        <div class="stations-top">
+          <h3>Волны</h3>
+          <span id="resultCount">0</span>
+        </div>
+        <ul id="stationList"></ul>
+      </section>
+    </main>
+
+    <template id="stationTemplate">
+      <li class="station-item">
+        <button class="station-main" type="button"></button>
+        <button class="station-play" type="button" aria-label="Включить">▶</button>
+      </li>
+    </template>
+
+    <script src="app.js"></script>
+  </body>
+</html>

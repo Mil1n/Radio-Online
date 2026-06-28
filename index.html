@@ -3,18 +3,34 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#050816" />
     <title>Radio Online — страны и волны</title>
+    <link rel="manifest" href="manifest.json" />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <main class="app-shell">
       <header class="hero">
-        <p class="badge">LIVE RADIO</p>
-        <h1>Radio Online</h1>
-        <p class="subtitle">Современное онлайн-радио: выбери страну, найди волну и слушай сразу.</p>
+        <div>
+          <p class="badge">LIVE RADIO</p>
+          <h1>Radio Online</h1>
+          <p class="subtitle">Современное онлайн-радио: выбери страну, найди волну и слушай сразу.</p>
+        </div>
+        <div class="hero-actions" aria-label="Быстрые действия">
+          <button id="installBtn" class="ghost-btn" type="button" hidden>Установить</button>
+          <label class="theme-switch">
+            <span>Тема</span>
+            <select id="themeSelect" aria-label="Тема оформления">
+              <option value="night">Night Neon</option>
+              <option value="ocean">Ocean</option>
+              <option value="retro">Retro FM</option>
+              <option value="light">Light</option>
+            </select>
+          </label>
+        </div>
       </header>
 
-      <section class="panel controls">
+      <section class="panel controls" aria-label="Поиск и фильтры">
         <div class="field">
           <label for="countrySelect">Страна</label>
           <select id="countrySelect"></select>
@@ -28,19 +44,68 @@
           <select id="hostMode">
             <option value="night">Ночной / Chill</option>
             <option value="day">Энергичный / Daytime</option>
+            <option value="news">Новости</option>
+            <option value="retro">Retro</option>
+            <option value="rock">Rock</option>
           </select>
+        </div>
+        <div class="field">
+          <label for="genreFilter">Жанр</label>
+          <select id="genreFilter"><option value="">Все жанры</option></select>
+        </div>
+        <div class="field">
+          <label for="languageFilter">Язык</label>
+          <select id="languageFilter"><option value="">Все языки</option></select>
+        </div>
+        <div class="field">
+          <label for="bitrateFilter">Качество</label>
+          <select id="bitrateFilter">
+            <option value="0">Любой битрейт</option>
+            <option value="64">64+ kbps</option>
+            <option value="128">128+ kbps</option>
+            <option value="192">192+ kbps</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="sortSelect">Сортировка</label>
+          <select id="sortSelect">
+            <option value="votes">Популярные</option>
+            <option value="bitrate">Лучшее качество</option>
+            <option value="name">По названию</option>
+            <option value="language">По языку</option>
+          </select>
+        </div>
+        <div class="field toggles">
+          <span class="field-label">Быстрые фильтры</span>
+          <label><input id="favoritesOnly" type="checkbox" /> Только избранные</label>
+          <label><input id="russianGlobal" type="checkbox" /> Русскоязычные со всего мира</label>
         </div>
       </section>
 
       <section class="panel host-panel" aria-live="polite">
         <p class="host-kicker">Голос эфира</p>
         <p id="hostLine">Ночной город на связи. Выбирай волну — дальше музыка сама подскажет маршрут.</p>
+        <button id="newHostLine" class="ghost-btn compact" type="button">Новая реплика</button>
       </section>
 
-      <section class="panel player">
-        <h2 id="currentName">Станция не выбрана</h2>
-        <p id="currentInfo">Сначала выбери страну и волну из списка ниже.</p>
+      <section class="panel player" aria-live="polite">
+        <div>
+          <h2 id="currentName">Станция не выбрана</h2>
+          <p id="currentInfo">Сначала выбери страну и волну из списка ниже.</p>
+          <p id="trackMeta" class="track-meta">Метаданные трека появятся, если поток их отдаёт.</p>
+        </div>
+        <div class="player-actions">
+          <button id="nextStation" class="ghost-btn" type="button">Пропустить волну</button>
+        </div>
         <audio id="audio" controls preload="none"></audio>
+      </section>
+
+      <section class="panel history-panel">
+        <div class="stations-top">
+          <h3>Недавно слушали</h3>
+          <button id="clearHistory" class="ghost-btn compact" type="button">Очистить</button>
+        </div>
+        <ul id="historyList" class="mini-list"></ul>
       </section>
 
       <section class="panel stations">
@@ -48,12 +113,14 @@
           <h3>Волны</h3>
           <span id="resultCount">0</span>
         </div>
+        <p id="statusLine" class="status-line" role="status">Готовим эфир...</p>
         <ul id="stationList"></ul>
       </section>
     </main>
 
     <template id="stationTemplate">
       <li class="station-item">
+        <button class="favorite-btn" type="button" aria-label="Добавить в избранное">☆</button>
         <button class="station-main" type="button"></button>
         <button class="station-play" type="button" aria-label="Включить">▶</button>
       </li>

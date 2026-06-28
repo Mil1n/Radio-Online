@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" role="img" aria-label="Radio Online">
+  <rect width="192" height="192" rx="42" fill="#050816"/>
+  <circle cx="96" cy="96" r="58" fill="#1ce3c5"/>
+  <path d="M58 104h76M72 78h48M82 126h28" stroke="#7f6bff" stroke-width="14" stroke-linecap="round"/>
+</svg>

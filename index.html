@@ -73,12 +73,26 @@
             <option value="bitrate">Лучшее качество</option>
             <option value="name">По названию</option>
             <option value="language">По языку</option>
+            <option value="stability">По стабильности</option>
           </select>
         </div>
         <div class="field toggles">
           <span class="field-label">Быстрые фильтры</span>
           <label><input id="favoritesOnly" type="checkbox" /> Только избранные</label>
           <label><input id="russianGlobal" type="checkbox" /> Русскоязычные со всего мира</label>
+          <label><input id="verifiedOnly" type="checkbox" /> Только проверенные</label>
+        </div>
+      </section>
+
+      <section class="panel presets" aria-label="Режимы по настроению">
+        <h3>Режим по настроению</h3>
+        <div class="preset-actions">
+          <button class="ghost-btn compact" type="button" data-preset="work">Для работы</button>
+          <button class="ghost-btn compact" type="button" data-preset="road">В дорогу</button>
+          <button class="ghost-btn compact" type="button" data-preset="news">Новости</button>
+          <button class="ghost-btn compact" type="button" data-preset="retro">Ретро</button>
+          <button class="ghost-btn compact" type="button" data-preset="russian">Русский эфир</button>
+          <button class="ghost-btn compact" type="button" data-preset="random">Случайная страна</button>
         </div>
       </section>
 
@@ -95,15 +109,46 @@
           <p id="trackMeta" class="track-meta">Метаданные трека появятся, если поток их отдаёт.</p>
         </div>
         <div class="player-actions">
+          <button id="playPauseBtn" class="ghost-btn" type="button">▶ Play</button>
           <button id="nextStation" class="ghost-btn" type="button">Пропустить волну</button>
+          <button id="shuffleStation" class="ghost-btn" type="button">Случайная</button>
+          <button id="muteBtn" class="ghost-btn" type="button" aria-label="Выключить звук">🔊</button>
+          <label class="volume-field">
+            <span>Громкость</span>
+            <input id="volumeControl" type="range" min="0" max="100" value="85" />
+          </label>
         </div>
-        <audio id="audio" controls preload="none"></audio>
+        <div class="sleep-controls">
+          <label for="sleepTimer">Сонный таймер</label>
+          <select id="sleepTimer">
+            <option value="0">Выключен</option>
+            <option value="15">15 минут</option>
+            <option value="30">30 минут</option>
+            <option value="60">60 минут</option>
+            <option value="90">90 минут</option>
+          </select>
+          <span id="sleepTimerStatus">Таймер выключен.</span>
+        </div>
+        <audio id="audio" preload="none"></audio>
+      </section>
+
+      <section class="panel queue-panel">
+        <div class="stations-top">
+          <h3>Очередь эфира</h3>
+          <button id="clearQueue" class="ghost-btn compact" type="button">Очистить</button>
+        </div>
+        <ul id="queueList" class="mini-list"></ul>
       </section>
 
       <section class="panel history-panel">
         <div class="stations-top">
           <h3>Недавно слушали</h3>
-          <button id="clearHistory" class="ghost-btn compact" type="button">Очистить</button>
+          <div class="inline-actions">
+            <button id="exportFavorites" class="ghost-btn compact" type="button">Экспорт избранного</button>
+            <button id="importFavorites" class="ghost-btn compact" type="button">Импорт избранного</button>
+            <input id="importFavoritesFile" type="file" accept="application/json" hidden />
+            <button id="clearHistory" class="ghost-btn compact" type="button">Очистить</button>
+          </div>
         </div>
         <ul id="historyList" class="mini-list"></ul>
       </section>
@@ -122,6 +167,7 @@
       <li class="station-item">
         <button class="favorite-btn" type="button" aria-label="Добавить в избранное">☆</button>
         <button class="station-main" type="button"></button>
+        <button class="queue-btn" type="button" aria-label="Добавить в очередь">+</button>
         <button class="station-play" type="button" aria-label="Включить">▶</button>
       </li>
     </template>

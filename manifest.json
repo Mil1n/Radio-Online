@@ -13,5 +13,17 @@
       "type": "image/svg+xml",
       "purpose": "any maskable"
     }
+  ],
+  "shortcuts": [
+    {
+      "name": "Слушать радио",
+      "short_name": "Эфир",
+      "url": "./index.html",
+      "description": "Открыть Radio Online"
+    }
+  ],
+  "categories": [
+    "music",
+    "entertainment"
   ]
 }

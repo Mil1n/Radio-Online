@@ -13,7 +13,13 @@ const STORAGE = {
   muted: "radio-online:muted",
   countries: "radio-online:countries-cache",
   stations: "radio-online:stations-cache",
+  activeApi: "radio-online:active-api",
+  advancedMode: "radio-online:advanced-mode",
+  queue: "radio-online:queue",
 };
+
+const CACHE_TTL = 12 * 60 * 60 * 1000;
+const FETCH_TIMEOUT = 8000;
 
 const countrySelect = document.getElementById("countrySelect");
 const searchInput = document.getElementById("searchInput");
@@ -41,10 +47,12 @@ const shuffleStation = document.getElementById("shuffleStation");
 const newHostLine = document.getElementById("newHostLine");
 const themeSelect = document.getElementById("themeSelect");
 const installBtn = document.getElementById("installBtn");
+const advancedModeToggle = document.getElementById("advancedModeToggle");
 const playPauseBtn = document.getElementById("playPauseBtn");
 const muteBtn = document.getElementById("muteBtn");
 const volumeControl = document.getElementById("volumeControl");
 const queueList = document.getElementById("queueList");
+const queuePanel = document.getElementById("queuePanel");
 const clearQueue = document.getElementById("clearQueue");
 const exportFavorites = document.getElementById("exportFavorites");
 const importFavorites = document.getElementById("importFavorites");
@@ -59,7 +67,8 @@ const FAVORITE_LIMIT = 120;
 const HISTORY_LIMIT = 10;
 const MAX_PLAYBACK_ATTEMPTS = 8;
 
-let activeApi = API_MIRRORS[0];
+let activeApi = readJson(STORAGE.activeApi, API_MIRRORS[0]);
+if (!API_MIRRORS.includes(activeApi)) activeApi = API_MIRRORS[0];
 let stations = [];
 let renderedStations = [];
 let currentStation = null;
@@ -70,10 +79,11 @@ let favoriteStations = readJson(STORAGE.favoriteStations, []);
 let history = readJson(STORAGE.history, []);
 let failedStationIds = new Set();
 let playbackAttempts = 0;
-let queue = [];
+let queue = readJson(STORAGE.queue, []);
 let sleepTimerId = null;
 let sleepTimerEndsAt = 0;
 let sleepTimerTicker = null;
+let volumeBeforeSleepFade = null;
 
 const HOST_LINES = {
   night: [
@@ -138,6 +148,21 @@ function writeJson(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
 }
 
+function writeCache(key, data) {
+  writeJson(key, { savedAt: Date.now(), data });
+}
+
+function readCache(key) {
+  const cached = readJson(key, null);
+  if (!cached || !Array.isArray(cached.data)) return null;
+  return { ...cached, isFresh: Date.now() - Number(cached.savedAt || 0) < CACHE_TTL };
+}
+
+function cacheAgeLabel(savedAt) {
+  const hours = Math.max(1, Math.round((Date.now() - Number(savedAt || 0)) / 36e5));
+  return `${hours} ч. назад`;
+}
+
 function setStatus(message, tone = "") {
   statusLine.textContent = message;
   statusLine.dataset.tone = tone;
@@ -148,18 +173,23 @@ async function fetchJson(path) {
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
 
   for (const base of [activeApi, ...API_MIRRORS.filter((mirror) => mirror !== activeApi)]) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
     try {
-      if (base !== activeApi) setStatus(`Основной сервер недоступен. Пробуем резервный: ${base.replace("https://", "")}`, "warn");
-      const response = await fetch(`${base}${normalizedPath}`);
+      if (base !== activeApi) setStatus("Основной сервер недоступен. Пробуем резервный каталог...", "warn");
+      const response = await fetch(`${base}${normalizedPath}`, { signal: controller.signal });
       if (!response.ok) throw new Error(`API ${response.status}`);
       activeApi = base;
+      writeJson(STORAGE.activeApi, activeApi);
       return response.json();
     } catch (error) {
       errors.push(error);
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
 
-  throw errors.at(-1) || new Error("API error");
+  throw errors[errors.length - 1] || new Error("API error");
 }
 
 function cleanTags(tags, mode) {
@@ -202,13 +232,13 @@ async function loadCountries() {
   try {
     const countries = await fetchJson("/countries");
     const top = countries.filter((c) => c.stationcount > 10).sort((a, b) => a.name.localeCompare(b.name));
-    writeJson(STORAGE.countries, top);
+    writeCache(STORAGE.countries, top);
     buildCountrySelect(top);
   } catch (error) {
-    const cached = readJson(STORAGE.countries, []);
-    if (!cached.length) throw error;
-    buildCountrySelect(cached);
-    setStatus("Сервер недоступен. Используем сохранённый каталог стран.", "warn");
+    const cached = readCache(STORAGE.countries);
+    if (!cached?.data.length) throw error;
+    buildCountrySelect(cached.data);
+    setStatus(`Сервер недоступен. Используем каталог из кэша (${cacheAgeLabel(cached.savedAt)}).`, "warn");
   }
   await loadStations(countrySelect.value);
 }
@@ -233,12 +263,13 @@ async function loadStations(country) {
     }
 
     stations = merged;
-    writeJson(cacheKey, stations);
+    writeCache(cacheKey, stations);
     setStatus(`Готово: найдено ${stations.length} станций через ${activeApi.replace("https://", "")}.`, "ok");
   } catch (error) {
-    stations = readJson(cacheKey, []);
+    const cached = readCache(cacheKey);
+    stations = cached?.data || [];
     if (!stations.length) throw error;
-    setStatus(`API временно недоступен. Показан сохранённый список: ${stations.length} станций.`, "warn");
+    setStatus(`API временно недоступен. Показан кэш (${cacheAgeLabel(cached.savedAt)}): ${stations.length} станций.`, "warn");
   }
 
   rebuildFilters();
@@ -433,10 +464,9 @@ function addToQueue(station) {
 
 function renderQueue() {
   queueList.innerHTML = "";
-  if (!queue.length) {
-    queueList.innerHTML = '<li class="empty-state">Очередь пустая. Добавь станции кнопкой «+».</li>';
-    return;
-  }
+  queuePanel.hidden = !queue.length;
+  writeJson(STORAGE.queue, queue);
+  if (!queue.length) return;
 
   queue.forEach((station, index) => {
     const item = document.createElement("li");
@@ -530,31 +560,37 @@ function importFavoriteStations(file) {
 }
 
 function setSleepTimer(minutes) {
-  clearSleepTimer();
+  clearSleepTimer(true);
   const value = Number(minutes);
   if (!value) {
     sleepTimerStatus.textContent = "Таймер выключен.";
     return;
   }
 
+  volumeBeforeSleepFade = audio.volume;
   sleepTimerEndsAt = Date.now() + value * 60 * 1000;
   sleepTimerId = setTimeout(() => {
     audio.pause();
     audio.currentTime = 0;
     updatePlayPauseButton();
-    clearSleepTimer();
+    clearSleepTimer(false);
     sleepTimerStatus.textContent = "Таймер остановил эфир.";
   }, value * 60 * 1000);
   sleepTimerTicker = setInterval(updateSleepTimerStatus, 1000);
   updateSleepTimerStatus();
 }
 
-function clearSleepTimer() {
+function clearSleepTimer(restoreVolume = false) {
   clearTimeout(sleepTimerId);
   clearInterval(sleepTimerTicker);
   sleepTimerId = null;
   sleepTimerTicker = null;
   sleepTimerEndsAt = 0;
+  if (restoreVolume && volumeBeforeSleepFade !== null) {
+    audio.volume = volumeBeforeSleepFade;
+    volumeControl.value = String(Math.round(audio.volume * 100));
+  }
+  volumeBeforeSleepFade = null;
 }
 
 function updateSleepTimerStatus() {
@@ -562,7 +598,11 @@ function updateSleepTimerStatus() {
   const minutes = Math.floor(remaining / 60000);
   const seconds = Math.floor((remaining % 60000) / 1000);
   sleepTimerStatus.textContent = `Сонный таймер: ${minutes}:${String(seconds).padStart(2, "0")}`;
-  if (remaining < 30000 && remaining > 0) audio.volume = Math.min(audio.volume, Math.max(0.05, remaining / 30000));
+  if (remaining < 30000 && remaining > 0 && volumeBeforeSleepFade !== null) {
+    const fadeRatio = Math.max(0.05, remaining / 30000);
+    audio.volume = Math.min(volumeBeforeSleepFade, volumeBeforeSleepFade * fadeRatio);
+    volumeControl.value = String(Math.round(audio.volume * 100));
+  }
 }
 
 function applyPreset(name) {
@@ -597,6 +637,7 @@ shuffleStation.addEventListener("click", playRandomStation);
 clearHistory.addEventListener("click", () => { history = []; writeJson(STORAGE.history, history); renderHistory(); });
 clearQueue.addEventListener("click", () => { queue = []; renderQueue(); });
 themeSelect.addEventListener("change", () => applyTheme(themeSelect.value));
+advancedModeToggle.addEventListener("click", () => applyAdvancedMode(document.documentElement.dataset.advanced !== "true"));
 exportFavorites.addEventListener("click", exportFavoriteStations);
 importFavorites.addEventListener("click", () => importFavoritesFile.click());
 importFavoritesFile.addEventListener("change", () => importFavoritesFile.files[0] && importFavoriteStations(importFavoritesFile.files[0]));
@@ -656,6 +697,15 @@ installBtn.addEventListener("click", async () => {
   installBtn.hidden = true;
 });
 
+
+function applyAdvancedMode(enabled) {
+  document.documentElement.dataset.advanced = enabled ? "true" : "false";
+  advancedModeToggle.setAttribute("aria-pressed", String(enabled));
+  advancedModeToggle.textContent = enabled ? "Простой режим" : "Расширенный режим";
+  writeJson(STORAGE.advancedMode, enabled);
+  renderQueue();
+}
+
 function showLoadError() {
   stationList.innerHTML = '<li class="empty-state">Ошибка загрузки. Проверь подключение к интернету и нажми страну ещё раз.</li>';
   setStatus("Не удалось загрузить каталог. Возможно, API временно недоступен.", "error");
@@ -663,6 +713,7 @@ function showLoadError() {
 }
 
 applyTheme(readJson(STORAGE.theme, "night"));
+applyAdvancedMode(Boolean(readJson(STORAGE.advancedMode, false)));
 applyVolumeFromStorage();
 renderHistory();
 renderQueue();

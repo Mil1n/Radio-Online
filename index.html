@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" data-advanced="false">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -18,6 +18,7 @@
         </div>
         <div class="hero-actions" aria-label="Быстрые действия">
           <button id="installBtn" class="ghost-btn" type="button" hidden>Установить</button>
+          <button id="advancedModeToggle" class="ghost-btn" type="button" aria-pressed="false">Расширенный режим</button>
           <label class="theme-switch">
             <span>Тема</span>
             <select id="themeSelect" aria-label="Тема оформления">
@@ -39,7 +40,7 @@
           <label for="searchInput">Поиск станции</label>
           <input id="searchInput" type="text" placeholder="Rock, Pop, Новости, Jazz..." />
         </div>
-        <div class="field">
+        <div class="field advanced-only">
           <label for="hostMode">Формат ведущего</label>
           <select id="hostMode">
             <option value="night">Ночной / Chill</option>
@@ -49,15 +50,15 @@
             <option value="rock">Rock</option>
           </select>
         </div>
-        <div class="field">
+        <div class="field advanced-only">
           <label for="genreFilter">Жанр</label>
           <select id="genreFilter"><option value="">Все жанры</option></select>
         </div>
-        <div class="field">
+        <div class="field advanced-only">
           <label for="languageFilter">Язык</label>
           <select id="languageFilter"><option value="">Все языки</option></select>
         </div>
-        <div class="field">
+        <div class="field advanced-only">
           <label for="bitrateFilter">Качество</label>
           <select id="bitrateFilter">
             <option value="0">Любой битрейт</option>
@@ -66,7 +67,7 @@
             <option value="192">192+ kbps</option>
           </select>
         </div>
-        <div class="field">
+        <div class="field advanced-only">
           <label for="sortSelect">Сортировка</label>
           <select id="sortSelect">
             <option value="votes">Популярные</option>
@@ -76,7 +77,7 @@
             <option value="stability">По стабильности</option>
           </select>
         </div>
-        <div class="field toggles">
+        <div class="field toggles advanced-only">
           <span class="field-label">Быстрые фильтры</span>
           <label><input id="favoritesOnly" type="checkbox" /> Только избранные</label>
           <label><input id="russianGlobal" type="checkbox" /> Русскоязычные со всего мира</label>
@@ -84,7 +85,7 @@
         </div>
       </section>
 
-      <section class="panel presets" aria-label="Режимы по настроению">
+      <section class="panel presets advanced-only" aria-label="Режимы по настроению">
         <h3>Режим по настроению</h3>
         <div class="preset-actions">
           <button class="ghost-btn compact" type="button" data-preset="work">Для работы</button>
@@ -118,7 +119,7 @@
             <input id="volumeControl" type="range" min="0" max="100" value="85" />
           </label>
         </div>
-        <div class="sleep-controls">
+        <div class="sleep-controls advanced-only">
           <label for="sleepTimer">Сонный таймер</label>
           <select id="sleepTimer">
             <option value="0">Выключен</option>
@@ -132,7 +133,7 @@
         <audio id="audio" preload="none"></audio>
       </section>
 
-      <section class="panel queue-panel">
+      <section id="queuePanel" class="panel queue-panel advanced-only" hidden>
         <div class="stations-top">
           <h3>Очередь эфира</h3>
           <button id="clearQueue" class="ghost-btn compact" type="button">Очистить</button>
@@ -144,14 +145,21 @@
         <div class="stations-top">
           <h3>Недавно слушали</h3>
           <div class="inline-actions">
-            <button id="exportFavorites" class="ghost-btn compact" type="button">Экспорт избранного</button>
-            <button id="importFavorites" class="ghost-btn compact" type="button">Импорт избранного</button>
-            <input id="importFavoritesFile" type="file" accept="application/json" hidden />
             <button id="clearHistory" class="ghost-btn compact" type="button">Очистить</button>
           </div>
         </div>
         <ul id="historyList" class="mini-list"></ul>
       </section>
+
+      <details class="panel settings-panel advanced-only">
+        <summary>Настройки и избранное</summary>
+        <div class="inline-actions settings-actions">
+          <button id="exportFavorites" class="ghost-btn compact" type="button">Экспорт избранного</button>
+          <button id="importFavorites" class="ghost-btn compact" type="button">Импорт избранного</button>
+          <input id="importFavoritesFile" type="file" accept="application/json" hidden />
+        </div>
+        <p class="settings-note">Импорт объединяет станции с текущим избранным и не удаляет уже сохранённые волны.</p>
+      </details>
 
       <section class="panel stations">
         <div class="stations-top">

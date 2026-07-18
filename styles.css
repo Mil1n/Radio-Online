@@ -115,3 +115,9 @@ audio { width: 100%; filter: saturate(1.15); }
   .station-play { grid-column: 1 / -1; }
   .volume-field { width: 100%; }
 }
+
+:root[data-advanced="false"] .advanced-only { display: none !important; }
+.settings-panel summary { cursor: pointer; font-weight: 800; color: var(--accent-2); }
+.settings-actions { margin-top: 12px; }
+.settings-note { margin: 10px 0 0; color: var(--muted); }
+.queue-panel[hidden] { display: none !important; }
